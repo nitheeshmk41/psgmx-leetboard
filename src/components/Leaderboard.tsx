@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useUsers } from '@/hooks/useFirestore';
-import { fetchLeetCodeStats, fetchWeeklyProgress } from '@/lib/leetcode-api';
+import { fetchLeetCodeStats, calculateWeeklyProgress } from '@/lib/leetcode-api';
 import { UserWithStats } from '@/types/user';
 import { UserProfileModal } from '@/components/UserProfileModal';
 import { Trophy, Medal, Award, Filter, Users, TrendingUp, Target } from 'lucide-react';
@@ -34,43 +34,41 @@ export const Leaderboard = () => {
     const usersWithStatsData: UserWithStats[] = [];
 
     for (const user of users) {
-  try {
-    const stats = await fetchLeetCodeStats(user.leetcodeUsername);
-    const weeklyProgress = await fetchWeeklyProgress(user.leetcodeUsername); // ✅ New API
-
-    if (stats) {
-      usersWithStatsData.push({
-        ...user,
-        stats: {
-          totalSolved: stats.totalSolved,
-          weeklyProgress,
-          ranking: stats.ranking,
-          acceptanceRate: stats.acceptanceRate,
-          easySolved: stats.easySolved,
-          mediumSolved: stats.mediumSolved,
-          hardSolved: stats.hardSolved,
-        },
-      });
+      try {
+        const stats = await fetchLeetCodeStats(user.leetcodeUsername);
+        if (stats) {
+          const weeklyProgress = calculateWeeklyProgress(stats.submissionCalendar || {});
+          usersWithStatsData.push({
+            ...user,
+            stats: {
+              totalSolved: stats.totalSolved,
+              weeklyProgress,
+              ranking: stats.ranking,
+              acceptanceRate: stats.acceptanceRate,
+              easySolved: stats.easySolved,
+              mediumSolved: stats.mediumSolved,
+              hardSolved: stats.hardSolved,
+            },
+          });
+        }
+      } catch {
+        usersWithStatsData.push({
+          ...user,
+          stats: {
+            totalSolved: 0,
+            weeklyProgress: 0,
+            ranking: 0,
+            acceptanceRate: 0,
+            easySolved: 0,
+            mediumSolved: 0,
+            hardSolved: 0,
+          },
+        });
+      }
     }
-  } catch {
-    usersWithStatsData.push({
-      ...user,
-      stats: {
-        totalSolved: 0,
-        weeklyProgress: 0,
-        ranking: 0,
-        acceptanceRate: 0,
-        easySolved: 0,
-        mediumSolved: 0,
-        hardSolved: 0,
-      },
-    });
-  }
-}
 
     // Sort by weekly progress descending
-   // Sort by weekly progress (desc), then total solved (desc) if tie
-usersWithStatsData.sort((a, b) => {
+    usersWithStatsData.sort((a, b) => {
   const weeklyA = a.stats?.weeklyProgress || 0;
   const weeklyB = b.stats?.weeklyProgress || 0;
 
@@ -85,9 +83,6 @@ usersWithStatsData.sort((a, b) => {
 
 setUsersWithStats(usersWithStatsData);
 setStatsLoading(false);
-
-
-    
   };
 
   const filteredUsers = usersWithStats.filter(user => filter === 'all' ? true : user.group === filter);

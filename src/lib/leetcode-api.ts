@@ -63,31 +63,30 @@ export const fetchLeetCodeStats = async (username: string): Promise<LeetCodeStat
 /**
  * Calculate submissions in the current week (Sunday → Saturday)
  */
+export const calculateWeeklyProgress = (submissionCalendar: Record<string, number> = {}): number => {
+  const now = new Date();
 
-const ALFA_API_BASE = 'https://alfa-leetcode-api.onrender.com';
+  // Find the most recent Sunday (start of this week)
+  const day = now.getDay(); // 0 = Sunday, 6 = Saturday
+  const diffToSunday = day; // how many days passed since last Sunday
+  const startOfWeek = new Date(now);
+  startOfWeek.setHours(0, 0, 0, 0); // midnight
+  startOfWeek.setDate(now.getDate() - diffToSunday);
 
-export const fetchWeeklyProgress = async (username: string): Promise<number> => {
-  try {
-    const response = await axios.get(`${ALFA_API_BASE}/${username}/acSubmission`);
-    const submissions = response.data.submission || [];
+  // End of this week (Saturday 23:59:59)
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 6);
+  endOfWeek.setHours(23, 59, 59, 999);
 
-    const now = new Date();
-    const sunday = new Date(now);
-    sunday.setDate(now.getDate() - now.getDay()); // Sunday 00:00
-    sunday.setHours(0, 0, 0, 0);
+  let weeklySubmissions = 0;
 
-    let count = 0;
-    for (const sub of submissions) {
-      const ts = new Date(parseInt(sub.timestamp, 10) * 1000);
-      if (ts >= sunday) {
-        count++;
-      }
+  for (const [timestamp, count] of Object.entries(submissionCalendar)) {
+    const submissionDate = new Date(parseInt(timestamp) * 1000);
+    if (submissionDate >= startOfWeek && submissionDate <= endOfWeek) {
+      weeklySubmissions += count;
     }
-
-    return count;
-  } catch (err) {
-    console.error(`Failed to fetch weekly submissions for ${username}`, err);
-    return 0;
   }
+
+  return weeklySubmissions;
 };
 
