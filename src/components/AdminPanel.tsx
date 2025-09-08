@@ -10,9 +10,11 @@ import { useToast } from '@/hooks/use-toast';
 import { User, Trash2, UserPlus, Users, Pencil } from 'lucide-react';
 import { User as UserType } from '@/types/user';
 import { AdminEditUserDialog } from '@/components/AdminEditUserDialog';
+
 export const AdminPanel = () => {
   const [leetcodeUsername, setLeetcodeUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [rollNo, setRollNo] = useState('');
   const [group, setGroup] = useState<'G1' | 'G2'>('G1');
   const [loading, setLoading] = useState(false);
   
@@ -24,7 +26,7 @@ export const AdminPanel = () => {
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!leetcodeUsername.trim() || !displayName.trim()) {
+    if (!leetcodeUsername.trim() || !displayName.trim() || !rollNo.trim()) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields.",
@@ -36,6 +38,7 @@ export const AdminPanel = () => {
     setLoading(true);
     try {
       await addUser({
+        rollNo: rollNo.trim(),
         leetcodeUsername: leetcodeUsername.trim(),
         displayName: displayName.trim(),
         group,
@@ -47,6 +50,7 @@ export const AdminPanel = () => {
       });
 
       // Reset form
+      setRollNo('');
       setLeetcodeUsername('');
       setDisplayName('');
       setGroup('G1');
@@ -93,7 +97,17 @@ export const AdminPanel = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleAddUser} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="rollNo">Roll Number</Label>
+                <Input
+                  id="rollNo"
+                  placeholder="Enter roll number"
+                  value={rollNo}
+                  onChange={(e) => setRollNo(e.target.value)}
+                  required
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="displayName">Student Name</Label>
                 <Input
@@ -187,7 +201,7 @@ export const AdminPanel = () => {
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        @{user.leetcodeUsername}
+                        Roll No: {user.rollNo} • @{user.leetcodeUsername}
                       </p>
                     </div>
                   </div>

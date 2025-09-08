@@ -61,17 +61,33 @@ export const fetchLeetCodeStats = async (username: string): Promise<LeetCodeStat
 };
 
 /**
- * Calculate submissions in the last 7 days
+ * Calculate submissions in the current week (Sunday → Saturday)
  */
-export const calculateWeeklyProgress = (submissionCalendar: Record<string, number> = {}): number => {
-  const now = new Date();
-  const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  let weeklySubmissions = 0;
 
-  for (const [timestamp, count] of Object.entries(submissionCalendar)) {
-    const submissionDate = new Date(parseInt(timestamp) * 1000);
-    if (submissionDate >= oneWeekAgo) weeklySubmissions += count;
+const ALFA_API_BASE = 'https://alfa-leetcode-api.onrender.com';
+
+export const fetchWeeklyProgress = async (username: string): Promise<number> => {
+  try {
+    const response = await axios.get(`${ALFA_API_BASE}/${username}/acSubmission`);
+    const submissions = response.data.submission || [];
+
+    const now = new Date();
+    const sunday = new Date(now);
+    sunday.setDate(now.getDate() - now.getDay()); // Sunday 00:00
+    sunday.setHours(0, 0, 0, 0);
+
+    let count = 0;
+    for (const sub of submissions) {
+      const ts = new Date(parseInt(sub.timestamp, 10) * 1000);
+      if (ts >= sunday) {
+        count++;
+      }
+    }
+
+    return count;
+  } catch (err) {
+    console.error(`Failed to fetch weekly submissions for ${username}`, err);
+    return 0;
   }
-
-  return weeklySubmissions;
 };
+

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useUsers } from '@/hooks/useFirestore';
-import { fetchLeetCodeStats, calculateWeeklyProgress } from '@/lib/leetcode-api';
+import { fetchLeetCodeStats, fetchWeeklyProgress } from '@/lib/leetcode-api';
 import { UserWithStats } from '@/types/user';
 import { UserProfileModal } from '@/components/UserProfileModal';
 import { Trophy, Medal, Award, Filter, Users, TrendingUp, Target } from 'lucide-react';
@@ -34,41 +34,60 @@ export const Leaderboard = () => {
     const usersWithStatsData: UserWithStats[] = [];
 
     for (const user of users) {
-      try {
-        const stats = await fetchLeetCodeStats(user.leetcodeUsername);
-        const weeklyProgress = calculateWeeklyProgress(stats.submissionCalendar || {});
-        usersWithStatsData.push({
-          ...user,
-          stats: {
-            totalSolved: stats.totalSolved,
-            weeklyProgress,
-            ranking: stats.ranking,
-            acceptanceRate: stats.acceptanceRate,
-            easySolved: stats.easySolved,
-            mediumSolved: stats.mediumSolved,
-            hardSolved: stats.hardSolved,
-          },
-        });
-      } catch {
-        usersWithStatsData.push({
-          ...user,
-          stats: {
-            totalSolved: 0,
-            weeklyProgress: 0,
-            ranking: 0,
-            acceptanceRate: 0,
-            easySolved: 0,
-            mediumSolved: 0,
-            hardSolved: 0,
-          },
-        });
-      }
+  try {
+    const stats = await fetchLeetCodeStats(user.leetcodeUsername);
+    const weeklyProgress = await fetchWeeklyProgress(user.leetcodeUsername); // ✅ New API
+
+    if (stats) {
+      usersWithStatsData.push({
+        ...user,
+        stats: {
+          totalSolved: stats.totalSolved,
+          weeklyProgress,
+          ranking: stats.ranking,
+          acceptanceRate: stats.acceptanceRate,
+          easySolved: stats.easySolved,
+          mediumSolved: stats.mediumSolved,
+          hardSolved: stats.hardSolved,
+        },
+      });
     }
+  } catch {
+    usersWithStatsData.push({
+      ...user,
+      stats: {
+        totalSolved: 0,
+        weeklyProgress: 0,
+        ranking: 0,
+        acceptanceRate: 0,
+        easySolved: 0,
+        mediumSolved: 0,
+        hardSolved: 0,
+      },
+    });
+  }
+}
 
     // Sort by weekly progress descending
-    usersWithStatsData.sort((a, b) => (b.stats?.weeklyProgress || 0) - (a.stats?.weeklyProgress || 0));
-    setUsersWithStats(usersWithStatsData);
-    setStatsLoading(false);
+   // Sort by weekly progress (desc), then total solved (desc) if tie
+usersWithStatsData.sort((a, b) => {
+  const weeklyA = a.stats?.weeklyProgress || 0;
+  const weeklyB = b.stats?.weeklyProgress || 0;
+
+  if (weeklyB !== weeklyA) {
+    return weeklyB - weeklyA; // Higher weekly progress first
+  }
+
+  const totalA = a.stats?.totalSolved || 0;
+  const totalB = b.stats?.totalSolved || 0;
+  return totalB - totalA; // Tie-breaker: higher total solved first
+});
+
+setUsersWithStats(usersWithStatsData);
+setStatsLoading(false);
+
+
+    
   };
 
   const filteredUsers = usersWithStats.filter(user => filter === 'all' ? true : user.group === filter);
@@ -79,7 +98,7 @@ export const Leaderboard = () => {
   const totalPages = Math.ceil(filteredUsers.length / USERS_PER_PAGE);
 
   const getRankDisplay = (index: number) => {
-    switch(index) {
+    switch (index) {
       case 0: return { icon: '👑', class: 'text-yellow-400' };
       case 1: return { icon: '🥈', class: 'text-gray-400' };
       case 2: return { icon: '🥉', class: 'text-amber-600' };
@@ -89,7 +108,7 @@ export const Leaderboard = () => {
 
   const getUserCardClass = (index: number) => {
     const baseClass = 'border border-gray-700 hover:border-gray-600 bg-gray-800/50 hover:bg-gray-800/70 transition-all duration-200 ease-in-out cursor-pointer';
-    
+
     if (index === 0) return `${baseClass} ring-1 ring-yellow-400/30`;
     if (index === 1) return `${baseClass} ring-1 ring-gray-400/30`;
     if (index === 2) return `${baseClass} ring-1 ring-amber-600/30`;
@@ -110,7 +129,7 @@ export const Leaderboard = () => {
   const getAllStats = () => {
     const totalSolved = usersWithStats.reduce((sum, user) => sum + (user.stats?.totalSolved || 0), 0);
     const weeklyProgress = usersWithStats.reduce((sum, user) => sum + (user.stats?.weeklyProgress || 0), 0);
-    
+
     const weeklyTop = usersWithStats.reduce((prev, curr) => (curr.stats?.weeklyProgress || 0) > (prev.stats?.weeklyProgress || 0) ? curr : prev, usersWithStats[0]);
     const overallTop = usersWithStats.reduce((prev, curr) => (curr.stats?.totalSolved || 0) > (prev.stats?.totalSolved || 0) ? curr : prev, usersWithStats[0]);
 
@@ -328,25 +347,26 @@ export const Leaderboard = () => {
                       </Avatar>
 
                       {/* User Info */}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold text-white truncate">
-                            {user.displayName}
-                          </h3>
-                          <Badge 
-                            variant="outline" 
-                            className={`text-xs ${user.group === 'G1' 
-                              ? 'border-blue-500 text-blue-400 bg-blue-500/10' 
-                              : 'border-purple-500 text-purple-400 bg-purple-500/10'
-                            }`}
-                          >
-                            {user.group}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-gray-400 truncate">
-                          @{user.leetcodeUsername}
-                        </p>
-                      </div>
+                      
+                          <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-semibold text-white truncate">
+                      {user.displayName}
+                    </h3>
+                    <Badge 
+                      variant="outline" 
+                      className={`text-xs ${user.group === 'G1' 
+                        ? 'border-blue-500 text-blue-400 bg-blue-500/10' 
+                        : 'border-purple-500 text-purple-400 bg-purple-500/10'
+                      }`}
+                    >
+                      {user.group}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-gray-400 truncate">
+                    Roll No: {user.rollNo} • @{user.leetcodeUsername}
+                  </p>
+                </div>
 
                       {/* Stats */}
                       <div className="flex gap-6 text-right">

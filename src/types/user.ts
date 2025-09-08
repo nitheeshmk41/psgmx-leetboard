@@ -5,6 +5,7 @@ export interface User {
   group: 'G1' | 'G2';
   addedAt: Date;
   lastUpdated?: Date;
+  rollNo: string;
 }
 
 export interface UserWithStats extends User {

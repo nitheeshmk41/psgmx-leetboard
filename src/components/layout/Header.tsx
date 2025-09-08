@@ -1,5 +1,4 @@
 import { Shield, Trophy, Menu, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 
@@ -16,12 +15,12 @@ interface DailyProblem {
 
 const LogoIcon = () => (
   <svg
-    width="30"
-    height="30"
+    width="32"
+    height="32"
     viewBox="0 0 24 24"
     fill="none"
-    stroke="#8FA1B3" // subtle blue-gray
-    strokeWidth="2"
+    stroke="#00E5FF"
+    strokeWidth="2.2"
     strokeLinecap="round"
     strokeLinejoin="round"
     aria-hidden="true"
@@ -75,15 +74,14 @@ export const Header = ({ currentPage, onNavigate }: HeaderProps) => {
           onNavigate("home");
           setMenuOpen(false);
         }}
-        className={`flex items-center gap-2 w-full justify-start md:justify-center text-sm font-semibold transition-colors duration-200 ${
+        className={`flex items-center gap-2 text-sm font-medium transition-colors duration-200 ${
           currentPage === "home"
             ? "text-white"
             : "text-gray-400 hover:text-white"
         }`}
-        aria-current={currentPage === "home" ? "page" : undefined}
       >
         <Trophy
-          className={`h-5 w-5 transition-transform duration-200 ${
+          className={`h-5 w-5 ${
             currentPage === "home" ? "text-cyan-400" : "text-gray-400"
           }`}
         />
@@ -97,15 +95,14 @@ export const Header = ({ currentPage, onNavigate }: HeaderProps) => {
               onNavigate("admin");
               setMenuOpen(false);
             }}
-            className={`flex items-center gap-2 w-full justify-start md:justify-center text-sm font-semibold transition-colors duration-200 ${
+            className={`flex items-center gap-2 text-sm font-medium transition-colors duration-200 ${
               currentPage === "admin"
                 ? "text-white"
                 : "text-gray-400 hover:text-white"
             }`}
-            aria-current={currentPage === "admin" ? "page" : undefined}
           >
             <Shield
-              className={`h-5 w-5 transition-transform duration-200 ${
+              className={`h-5 w-5 ${
                 currentPage === "admin" ? "text-cyan-400" : "text-gray-400"
               }`}
             />
@@ -116,7 +113,7 @@ export const Header = ({ currentPage, onNavigate }: HeaderProps) => {
               logout();
               setMenuOpen(false);
             }}
-            className="w-full md:w-auto text-sm font-semibold px-3 py-1 border border-gray-600 rounded-md text-gray-400 hover:text-white hover:border-cyan-500 transition-colors duration-200"
+            className="px-3 py-1 text-sm font-medium border border-gray-600 rounded-lg text-gray-400 hover:text-white hover:border-cyan-400 transition-all duration-300"
           >
             Logout
           </button>
@@ -127,7 +124,7 @@ export const Header = ({ currentPage, onNavigate }: HeaderProps) => {
             onNavigate("admin");
             setMenuOpen(false);
           }}
-          className="flex items-center gap-2 w-full justify-start md:justify-center text-sm font-semibold text-gray-400 hover:text-white transition-colors duration-200"
+          className="flex items-center gap-2 text-sm font-medium text-gray-400 hover:text-white transition-colors duration-200"
         >
           <Shield className="h-5 w-5 text-gray-400" />
           Admin Login
@@ -137,44 +134,39 @@ export const Header = ({ currentPage, onNavigate }: HeaderProps) => {
   );
 
   return (
-    <header className="bg-[#121212] border-b border-gray-800 sticky top-0 z-50 shadow-sm">
+    <header className="sticky top-0 z-50 backdrop-blur-md bg-black/40 border-b border-white/10 shadow-lg">
       <div className="container max-w-7xl mx-auto flex items-center justify-between px-5 py-3 md:py-4">
-        {/* Left: Logo and Title */}
+        {/* Logo & Title */}
         <div
-          className="flex items-center gap-3 cursor-pointer select-none"
+          className="flex items-center gap-3 cursor-pointer"
           onClick={() => onNavigate("home")}
-          aria-label="Navigate to Home"
         >
           <LogoIcon />
           <div>
-            <h1 className="text-lg md:text-xl font-semibold text-gray-100 tracking-wide">
+            <h1 className="text-lg md:text-xl font-semibold text-white tracking-wide">
               PSGMX Leaderboard
             </h1>
-            <p className="text-xs md:text-sm text-gray-500 font-light uppercase tracking-widest">
+            <p className="text-xs md:text-sm text-gray-400 font-light tracking-wider">
               Student Progress Tracker
             </p>
           </div>
         </div>
 
-        {/* Center: POTD (md+) */}
+        {/* POTD */}
         {dailyProblem && (
-          <div className="hidden md:flex flex-col items-center max-w-lg mx-auto px-8 text-center">
+          <div className="hidden md:flex flex-col items-center max-w-lg mx-auto px-6">
             <a
               href={dailyProblem.questionLink}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full"
-              aria-label={`Problem of the Day: ${dailyProblem.questionTitle}`}
             >
-              <div
-                className="w-full bg-gray-800 border border-gray-700 rounded-md px-6 py-2 flex justify-center items-center text-gray-300 hover:border-cyan-500 hover:text-white transition-colors duration-200 cursor-pointer select-none"
-                tabIndex={0}
-              >
-                <span className="font-semibold text-sm md:text-base truncate">
-                  Problem of the Day: {dailyProblem.questionTitle}
+              <div className="w-full bg-white/5 border border-white/10 backdrop-blur-sm rounded-lg px-5 py-2 flex justify-center items-center text-gray-300 hover:border-cyan-400 hover:text-white transition-all duration-300">
+                <span className="font-semibold text-sm truncate">
+                  POTD: {dailyProblem.questionTitle}
                 </span>
                 <span
-                  className={`ml-3 font-semibold text-sm md:text-base ${
+                  className={`ml-3 font-semibold text-sm ${
                     difficultyColor[dailyProblem.difficulty] || "text-gray-400"
                   }`}
                 >
@@ -185,29 +177,29 @@ export const Header = ({ currentPage, onNavigate }: HeaderProps) => {
           </div>
         )}
 
-        {/* Right: Navigation */}
-        <nav className="flex items-center gap-4 md:gap-6">
-          {/* Mobile Hamburger */}
+        {/* Desktop Nav */}
+        <nav className="flex items-center gap-6">
+          {/* Mobile Toggle */}
           <button
             aria-label={menuOpen ? "Close menu" : "Open menu"}
-            className="md:hidden p-2 rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            className="md:hidden p-2 rounded-lg hover:bg-white/10 transition-colors"
             onClick={() => setMenuOpen(!menuOpen)}
           >
             {menuOpen ? (
-              <X className="h-6 w-6 text-gray-400" />
+              <X className="h-6 w-6 text-gray-300" />
             ) : (
-              <Menu className="h-6 w-6 text-gray-400" />
+              <Menu className="h-6 w-6 text-gray-300" />
             )}
           </button>
 
-          {/* Desktop Nav Items */}
+          {/* Desktop */}
           <div className="hidden md:flex gap-8 items-center">{NavItems()}</div>
         </nav>
       </div>
 
       {/* Mobile Menu */}
       {menuOpen && (
-        <nav className="md:hidden bg-[#121212] border-t border-gray-800 px-6 py-5 flex flex-col gap-4 text-gray-400 text-sm">
+        <nav className="md:hidden bg-black/60 backdrop-blur-lg border-t border-white/10 px-6 py-5 flex flex-col gap-4 text-gray-300 text-sm animate-fade-in">
           {NavItems()}
           {dailyProblem && (
             <a
