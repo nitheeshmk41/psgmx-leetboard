@@ -7,7 +7,7 @@ import { useUsers } from '@/hooks/useFirestore';
 import { fetchLeetCodeStats, calculateWeeklyProgress } from '@/lib/leetcode-api';
 import { UserWithStats } from '@/types/user';
 import { UserProfileModal } from '@/components/UserProfileModal';
-import { Trophy, Medal, Award, Filter } from 'lucide-react';
+import { Trophy, Medal, Award, Filter, Users, TrendingUp, Target } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 type FilterType = 'all' | 'G1' | 'G2';
@@ -28,7 +28,6 @@ export const Leaderboard = () => {
       loadUserStats();
     }
   }, [users]);
-
 
   const loadUserStats = async () => {
     setStatsLoading(true);
@@ -79,25 +78,23 @@ export const Leaderboard = () => {
   const paginatedUsers = filteredUsers.slice(startIndex, startIndex + USERS_PER_PAGE);
   const totalPages = Math.ceil(filteredUsers.length / USERS_PER_PAGE);
 
-  const getRankEmoji = (index: number) => {
+  const getRankDisplay = (index: number) => {
     switch(index) {
-      case 0: return '🏆';
-      case 1: return '🥈';
-      case 2: return '🥉';
-      default: return `#${index + 1}`;
+      case 0: return { icon: '👑', class: 'text-yellow-400' };
+      case 1: return { icon: '🥈', class: 'text-gray-400' };
+      case 2: return { icon: '🥉', class: 'text-amber-600' };
+      default: return { icon: `${index + 1}`, class: 'text-gray-400' };
     }
   };
 
- const getUserCardClass = (index: number) => {
-  if (index === 0)
-    return 'bg-yellow-600/30 text-yellow-100 hover:bg-yellow-600/50 shadow-md transform hover:scale-[1.02] transition-all';
-  if (index === 1)
-    return 'bg-gray-600/30 text-gray-100 hover:bg-gray-600/50 shadow-md transform hover:scale-[1.02] transition-all';
-  if (index === 2)
-    return 'bg-amber-600/30 text-amber-100 hover:bg-amber-600/50 shadow-md transform hover:scale-[1.02] transition-all';
-  return 'bg-background/70 text-white hover:bg-background/50 hover:shadow-sm transform hover:scale-[1.01] transition-all';
-};
-
+  const getUserCardClass = (index: number) => {
+    const baseClass = 'border border-gray-700 hover:border-gray-600 bg-gray-800/50 hover:bg-gray-800/70 transition-all duration-200 ease-in-out cursor-pointer';
+    
+    if (index === 0) return `${baseClass} ring-1 ring-yellow-400/30`;
+    if (index === 1) return `${baseClass} ring-1 ring-gray-400/30`;
+    if (index === 2) return `${baseClass} ring-1 ring-amber-600/30`;
+    return baseClass;
+  };
 
   const getGroupStats = (group: 'G1' | 'G2') => {
     const groupUsers = usersWithStats.filter(user => user.group === group);
@@ -110,124 +107,314 @@ export const Leaderboard = () => {
     return { count: groupUsers.length, totalSolved, weeklyProgress, weeklyTop, overallTop };
   };
 
+  const getAllStats = () => {
+    const totalSolved = usersWithStats.reduce((sum, user) => sum + (user.stats?.totalSolved || 0), 0);
+    const weeklyProgress = usersWithStats.reduce((sum, user) => sum + (user.stats?.weeklyProgress || 0), 0);
+    
+    const weeklyTop = usersWithStats.reduce((prev, curr) => (curr.stats?.weeklyProgress || 0) > (prev.stats?.weeklyProgress || 0) ? curr : prev, usersWithStats[0]);
+    const overallTop = usersWithStats.reduce((prev, curr) => (curr.stats?.totalSolved || 0) > (prev.stats?.totalSolved || 0) ? curr : prev, usersWithStats[0]);
+
+    return { count: usersWithStats.length, totalSolved, weeklyProgress, weeklyTop, overallTop };
+  };
+
   const g1Stats = getGroupStats('G1');
   const g2Stats = getGroupStats('G2');
+  const allStats = getAllStats();
 
   return (
-    <div className="space-y-6">
-      {/* Group Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {[{stats: g1Stats, name: 'G1'}, {stats: g2Stats, name: 'G2'}].map(({stats, name}, idx) => (
-          <Card key={name} className="bg-gradient-card border-0 shadow-card">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Badge variant={idx === 0 ? 'default' : 'secondary'} className="px-3 py-1">{name}</Badge>
-                    <span>MXians</span>
-                  </div>
-                  <span className="text-2xl font-bold text-primary">{stats.count}</span>
-                </div>
-                <div className="text-sm">
-                  <span className="font-semibold">Weekly Top: </span> {stats.weeklyTop?.displayName || '-'} 🏅
-                  <span className="ml-4 font-semibold">Overall Top: </span> {stats.overallTop?.displayName || '-'} 🌟
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Total Solved</span>
-                  <span className="font-semibold">{stats.totalSolved}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Weekly Progress</span>
-                  <span className="font-semibold text-primary">{stats.weeklyProgress}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-        <div className="text-sm text-yellow-400 mb-2 text-center">
-  If you added a new code to LeetCode, check again after 5 mins for updates.
-</div>
-      {/* Filter Buttons */}
-      <div className="flex flex-wrap gap-2 justify-center">
-        <Button variant={filter === 'all' ? 'default' : 'group'} onClick={() => {setFilter('all'); setCurrentPage(1);}}>All Students</Button>
-        <Button variant={filter === 'G1' ? 'default' : 'group'} onClick={() => {setFilter('G1'); setCurrentPage(1);}}>G1</Button>
-        <Button variant={filter === 'G2' ? 'default' : 'group'} onClick={() => {setFilter('G2'); setCurrentPage(1);}}>G2</Button>
-      </div>
+    <div className="">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="text-center space-y-2 py-6">
+          <h1 className="text-3xl lg:text-4xl font-bold text-white">LeetCode Leaderboard</h1>
+          <p className="text-gray-400">Track your competitive programming progress</p>
+        </div>
 
-      {/* Leaderboard */}
-      <Card className="bg-gradient-card border-0 shadow-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">Weekly Leaderboard</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading || statsLoading ? (
-            <div className="space-y-4">
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full rounded-md" />
-              ))}
+        {/* Overall Stats */}
+        <Card className="bg-gray-900/90 border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-yellow-400" />
+              Overall Statistics
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+                <Users className="h-6 w-6 mx-auto mb-2 text-blue-400" />
+                <div className="text-2xl font-bold text-white">{allStats.count}</div>
+                <div className="text-sm text-gray-400">Total Students</div>
+              </div>
+              <div className="text-center p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+                <Target className="h-6 w-6 mx-auto mb-2 text-green-400" />
+                <div className="text-2xl font-bold text-white">{allStats.totalSolved}</div>
+                <div className="text-sm text-gray-400">Problems Solved</div>
+              </div>
+              <div className="text-center p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+                <TrendingUp className="h-6 w-6 mx-auto mb-2 text-purple-400" />
+                <div className="text-2xl font-bold text-white">{allStats.weeklyProgress}</div>
+                <div className="text-sm text-gray-400">Weekly Progress</div>
+              </div>
+              <div className="text-center p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+                <Medal className="h-6 w-6 mx-auto mb-2 text-orange-400" />
+                <div className="text-lg font-bold text-white">{allStats.weeklyTop?.displayName || '-'}</div>
+                <div className="text-sm text-gray-400">Weekly Leader</div>
+              </div>
             </div>
-          ) : paginatedUsers.length === 0 ? (
-            <div className="text-center py-12">No students found.</div>
-          ) : (
-            <div className="space-y-3">
-              {paginatedUsers.map((user, index) => {
-                const globalIndex = startIndex + index;
-                return (
-                  <div
-                    key={user.id}
-                    className={`flex items-center gap-4 p-4 rounded-lg border border-border cursor-pointer ${getUserCardClass(globalIndex)}`}
-                    onClick={() => {setSelectedUser(user); setIsModalOpen(true);}}
-                  >
-                    <div className="flex items-center gap-4 min-w-0 flex-1">
-                      <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-primary to-secondary text-xl font-bold">
-                        {getRankEmoji(globalIndex)}
+          </CardContent>
+        </Card>
+
+        {/* Group Stats */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {[
+            { stats: g1Stats, name: 'G1', color: 'blue' },
+            { stats: g2Stats, name: 'G2', color: 'purple' }
+          ].map(({ stats, name, color }) => (
+            <Card key={name} className="bg-gray-900/90 border-gray-700">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between text-white">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ${color === 'blue' ? 'bg-blue-500' : 'bg-purple-500'}`}></div>
+                    <span>Group {name}</span>
+                    <Badge 
+                      variant="outline" 
+                      className={`${color === 'blue' ? 'border-blue-500 text-blue-400' : 'border-purple-500 text-purple-400'} bg-transparent`}
+                    >
+                      {stats.count} members
+                    </Badge>
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-gray-800/30 rounded-lg p-3 border border-gray-700">
+                    <div className="text-sm text-gray-400 mb-1">Total Solved</div>
+                    <div className="text-xl font-bold text-white">{stats.totalSolved}</div>
+                  </div>
+                  <div className="bg-gray-800/30 rounded-lg p-3 border border-gray-700">
+                    <div className="text-sm text-gray-400 mb-1">Weekly Progress</div>
+                    <div className={`text-xl font-bold ${color === 'blue' ? 'text-blue-400' : 'text-purple-400'}`}>
+                      {stats.weeklyProgress}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center p-2 bg-gray-800/20 rounded border border-gray-700">
+                    <span className="text-sm text-gray-300">Weekly Top</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-white">{stats.weeklyTop?.displayName || '-'}</span>
+                      <Trophy className="h-4 w-4 text-yellow-400" />
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center p-2 bg-gray-800/20 rounded border border-gray-700">
+                    <span className="text-sm text-gray-300">Overall Top</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-white">{stats.overallTop?.displayName || '-'}</span>
+                      <Award className="h-4 w-4 text-orange-400" />
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Update Notice */}
+        <div className="text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded-full text-amber-300 text-sm">
+            <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
+            Updates reflect within 5 minutes of LeetCode submission
+          </div>
+        </div>
+
+        {/* Filter Buttons */}
+        <div className="flex flex-wrap gap-2 justify-center">
+          <Button 
+            variant={filter === 'all' ? 'default' : 'outline'}
+            onClick={() => {setFilter('all'); setCurrentPage(1);}}
+            className={`${filter === 'all' 
+              ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600' 
+              : 'bg-transparent border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-gray-500'
+            }`}
+          >
+            <Filter className="h-4 w-4 mr-2" />
+            All Students
+          </Button>
+          <Button 
+            variant={filter === 'G1' ? 'default' : 'outline'}
+            onClick={() => {setFilter('G1'); setCurrentPage(1);}}
+            className={`${filter === 'G1' 
+              ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600' 
+              : 'bg-transparent border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-gray-500'
+            }`}
+          >
+            G1
+          </Button>
+          <Button 
+            variant={filter === 'G2' ? 'default' : 'outline'}
+            onClick={() => {setFilter('G2'); setCurrentPage(1);}}
+            className={`${filter === 'G2' 
+              ? 'bg-purple-600 hover:bg-purple-700 text-white border-purple-600' 
+              : 'bg-transparent border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-gray-500'
+            }`}
+          >
+            G2
+          </Button>
+        </div>
+
+        {/* Leaderboard */}
+        <Card className="bg-gray-900/90 border-gray-700">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-yellow-400" />
+              Weekly Leaderboard
+              {filter !== 'all' && (
+                <Badge 
+                  variant="outline" 
+                  className={`ml-2 ${filter === 'G1' 
+                    ? 'border-blue-500 text-blue-400' 
+                    : 'border-purple-500 text-purple-400'
+                  } bg-transparent`}
+                >
+                  {filter}
+                </Badge>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading || statsLoading ? (
+              <div className="space-y-3">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="flex items-center gap-4 p-4">
+                    <Skeleton className="h-12 w-12 rounded-full bg-gray-700" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-32 bg-gray-700" />
+                      <Skeleton className="h-3 w-24 bg-gray-700" />
+                    </div>
+                    <Skeleton className="h-8 w-16 bg-gray-700" />
+                  </div>
+                ))}
+              </div>
+            ) : paginatedUsers.length === 0 ? (
+              <div className="text-center py-12">
+                <Users className="h-16 w-16 mx-auto text-gray-600 mb-4" />
+                <p className="text-gray-400 text-lg">No students found</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {paginatedUsers.map((user, index) => {
+                  const globalIndex = startIndex + index;
+                  const rankDisplay = getRankDisplay(globalIndex);
+                  
+                  return (
+                    <div
+                      key={user.id}
+                      className={`flex items-center gap-4 p-4 rounded-lg ${getUserCardClass(globalIndex)} hover:transform hover:scale-[1.01]`}
+                      onClick={() => {setSelectedUser(user); setIsModalOpen(true);}}
+                    >
+                      {/* Rank */}
+                      <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-gray-800 border border-gray-700">
+                        <span className={`text-lg font-bold ${rankDisplay.class}`}>
+                          {rankDisplay.icon}
+                        </span>
                       </div>
-                      <Avatar className="h-10 w-10">
-                        <AvatarFallback className="bg-primary text-primary-foreground">{user.displayName.split(' ').map(n => n[0]).join('').toUpperCase()}</AvatarFallback>
+
+                      {/* Avatar */}
+                      <Avatar className="h-11 w-11 border-2 border-gray-600">
+                        <AvatarFallback className="bg-gray-700 text-white font-medium">
+                          {user.displayName.split(' ').map(n => n[0]).join('').toUpperCase()}
+                        </AvatarFallback>
                       </Avatar>
+
+                      {/* User Info */}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold truncate">{user.displayName}</h3>
-                          <Badge variant={user.group === 'G1' ? 'default' : 'secondary'}>{user.group}</Badge>
+                          <h3 className="font-semibold text-white truncate">
+                            {user.displayName}
+                          </h3>
+                          <Badge 
+                            variant="outline" 
+                            className={`text-xs ${user.group === 'G1' 
+                              ? 'border-blue-500 text-blue-400 bg-blue-500/10' 
+                              : 'border-purple-500 text-purple-400 bg-purple-500/10'
+                            }`}
+                          >
+                            {user.group}
+                          </Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground truncate">@{user.leetcodeUsername}</p>
+                        <p className="text-sm text-gray-400 truncate">
+                          @{user.leetcodeUsername}
+                        </p>
+                      </div>
+
+                      {/* Stats */}
+                      <div className="flex gap-6 text-right">
+                        <div>
+                          <div className="text-lg font-bold text-green-400">
+                            {user.stats?.weeklyProgress || 0}
+                          </div>
+                          <div className="text-xs text-gray-500 uppercase tracking-wide">
+                            Weekly
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-lg font-bold text-blue-400">
+                            {user.stats?.totalSolved || 0}
+                          </div>
+                          <div className="text-xs text-gray-500 uppercase tracking-wide">
+                            Total
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-primary">{user.stats?.weeklyProgress || 0}</div>
-                      <div className="text-xs text-muted-foreground">weekly</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm font-semibold">{user.stats?.totalSolved || 0}</div>
-                      <div className="text-xs text-muted-foreground">total</div>
-                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 pt-4 border-t border-gray-700">
+                <div className="text-sm text-gray-400">
+                  Showing {startIndex + 1} to {Math.min(startIndex + USERS_PER_PAGE, filteredUsers.length)} of {filteredUsers.length} students
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage === 1} 
+                    onClick={() => setCurrentPage(prev => prev - 1)}
+                    className="bg-transparent border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white disabled:opacity-50"
+                  >
+                    Previous
+                  </Button>
+                  <div className="flex items-center gap-1 mx-2">
+                    <span className="text-sm text-gray-400">
+                      Page {currentPage} of {totalPages}
+                    </span>
                   </div>
-                );
-              })}
-            </div>
-          )}
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage === totalPages} 
+                    onClick={() => setCurrentPage(prev => prev + 1)}
+                    className="bg-transparent border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white disabled:opacity-50"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex justify-center gap-4 mt-4">
-              <Button disabled={currentPage === 1} onClick={() => setCurrentPage(prev => prev - 1)}>Previous</Button>
-              <span className="flex items-center gap-1">Page {currentPage} / {totalPages}</span>
-              <Button disabled={currentPage === totalPages} onClick={() => setCurrentPage(prev => prev + 1)}>Next</Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <UserProfileModal
-        user={selectedUser}
-        isOpen={isModalOpen}
-        onClose={() => {setIsModalOpen(false); setSelectedUser(null);}}
-      />
+        <UserProfileModal
+          user={selectedUser}
+          isOpen={isModalOpen}
+          onClose={() => {setIsModalOpen(false); setSelectedUser(null);}}
+        />
+      </div>
     </div>
   );
 };
